@@ -275,19 +275,9 @@ async function initComments() {
         card.className = 'comment-card';
         card.id = `comment-${comment.id}`;
 
-        const reactions = comment.reactions || { "👍": 0, "❤️": 0, "🔥": 0, "😂": 0, "😢": 0, "🗿": 0 };
-        const emojis = ["👍", "❤️", "🔥", "😂", "😢", "🗿"];
-
-        let reactionsHTML = emojis.map(emoji => {
-            const count = reactions[emoji] || 0;
-            const hasReacted = localStorage.getItem(`reacted_${comment.id}_${emoji}`) === 'true';
-            return `
-                <button type="button" class="reaction-btn ${hasReacted ? 'active' : ''}" data-emoji="${emoji}">
-                    <span>${emoji}</span>
-                    <span class="reaction-count">${count}</span>
-                </button>
-            `;
-        }).join('');
+        if (!comment.reactions) {
+            comment.reactions = { "👍": 0, "❤️": 0, "🔥": 0, "😂": 0, "😢": 0, "🗿": 0 };
+        }
 
         card.innerHTML = `
             <div class="comment-header">
@@ -296,14 +286,74 @@ async function initComments() {
             </div>
             <div class="comment-body">${escapeHTML(comment.message)}</div>
             <div class="comment-actions">
-                <button type="button" class="comment-reply-btn" data-id="${comment.id}" data-author="${comment.nickname}" data-parent="${comment.parentId || comment.id}">
-                    Reply
-                </button>
-                <div class="comment-reactions">
-                    ${reactionsHTML}
+                <div class="comment-action-buttons">
+                    <button type="button" class="comment-reply-btn" data-id="${comment.id}" data-author="${comment.nickname}" data-parent="${comment.parentId || comment.id}">
+                        Reply
+                    </button>
+                    <div class="reaction-picker-container">
+                        <button type="button" class="comment-react-trigger-btn">＋ Reaction</button>
+                        <div class="emoji-picker-popover" style="display: none;">
+                            <button type="button" class="picker-emoji-btn" data-emoji="👍">👍</button>
+                            <button type="button" class="picker-emoji-btn" data-emoji="❤️">❤️</button>
+                            <button type="button" class="picker-emoji-btn" data-emoji="🔥">🔥</button>
+                            <button type="button" class="picker-emoji-btn" data-emoji="😂">😂</button>
+                            <button type="button" class="picker-emoji-btn" data-emoji="😢">😢</button>
+                            <button type="button" class="picker-emoji-btn" data-emoji="🗿">🗿</button>
+                        </div>
+                    </div>
                 </div>
+                <div class="comment-active-reactions"></div>
             </div>
         `;
+
+        // Render Slack/GitHub style reaction badges
+        const renderActiveReactions = () => {
+            const activeContainer = card.querySelector('.comment-active-reactions');
+            if (!activeContainer) return;
+            activeContainer.innerHTML = '';
+
+            const emojis = ["👍", "❤️", "🔥", "😂", "😢", "🗿"];
+            emojis.forEach(emoji => {
+                const count = comment.reactions[emoji] || 0;
+                const hasReacted = localStorage.getItem(`reacted_${comment.id}_${emoji}`) === 'true';
+
+                if (count > 0 || hasReacted) {
+                    const badge = document.createElement('button');
+                    badge.type = 'button';
+                    badge.className = `active-reaction-badge ${hasReacted ? 'active' : ''}`;
+                    badge.innerHTML = `<span>${emoji}</span> <span class="badge-count">${count}</span>`;
+                    
+                    badge.onclick = async () => {
+                        let action = hasReacted ? "unreact" : "react";
+                        const newCount = hasReacted ? Math.max(0, count - 1) : count + 1;
+                        
+                        localStorage.setItem(`reacted_${comment.id}_${emoji}`, hasReacted ? 'false' : 'true');
+                        comment.reactions[emoji] = newCount;
+                        renderActiveReactions();
+
+                        try {
+                            await fetch(`${WORKER_URL}/api/comments/react`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    post_id: postId,
+                                    comment_id: comment.id,
+                                    emoji: emoji,
+                                    action: action
+                                })
+                            });
+                        } catch (err) {
+                            console.error('Failed to toggle reaction', err);
+                        }
+                    };
+                    
+                    activeContainer.appendChild(badge);
+                }
+            });
+        };
+
+        // Initialize active reactions rendering
+        renderActiveReactions();
 
         // Bind reply click inside this card
         const replyBtn = card.querySelector('.comment-reply-btn');
@@ -324,26 +374,43 @@ async function initComments() {
             messageInput.focus();
         };
 
-        // Bind emoji clicks
-        card.querySelectorAll('.reaction-btn').forEach(btn => {
-            btn.onclick = async () => {
-                const emoji = btn.getAttribute('data-emoji');
+        // Popover Emoji Picker Handlers
+        const triggerBtn = card.querySelector('.comment-react-trigger-btn');
+        const popover = card.querySelector('.emoji-picker-popover');
+
+        triggerBtn.onclick = (e) => {
+            e.stopPropagation();
+            // Close other open popovers first
+            document.querySelectorAll('.emoji-picker-popover').forEach(p => {
+                if (p !== popover) p.style.display = 'none';
+            });
+            popover.style.display = popover.style.display === 'none' ? 'flex' : 'none';
+        };
+
+        // Close popover when clicking anywhere else
+        document.addEventListener('click', () => {
+            popover.style.display = 'none';
+        });
+
+        // Prevent clicking popover content from closing it
+        popover.onclick = (e) => e.stopPropagation();
+
+        // Handle emoji selection from picker
+        const pickerButtons = card.querySelectorAll('.picker-emoji-btn');
+        pickerButtons.forEach(pickerBtn => {
+            pickerBtn.onclick = async () => {
+                const emoji = pickerBtn.getAttribute('data-emoji');
                 const hasReacted = localStorage.getItem(`reacted_${comment.id}_${emoji}`) === 'true';
-                const countSpan = btn.querySelector('.reaction-count');
-                const currentCount = parseInt(countSpan.innerText);
                 
-                let action = "react";
-                if (hasReacted) {
-                    action = "unreact";
-                    countSpan.innerText = Math.max(0, currentCount - 1);
-                    btn.classList.remove('active');
-                    localStorage.setItem(`reacted_${comment.id}_${emoji}`, 'false');
-                } else {
-                    action = "react";
-                    countSpan.innerText = currentCount + 1;
-                    btn.classList.add('active');
-                    localStorage.setItem(`reacted_${comment.id}_${emoji}`, 'true');
-                }
+                let action = hasReacted ? "unreact" : "react";
+                const currentCount = comment.reactions[emoji] || 0;
+                const newCount = hasReacted ? Math.max(0, currentCount - 1) : currentCount + 1;
+                
+                localStorage.setItem(`reacted_${comment.id}_${emoji}`, hasReacted ? 'false' : 'true');
+                comment.reactions[emoji] = newCount;
+                
+                renderActiveReactions();
+                popover.style.display = 'none';
 
                 try {
                     await fetch(`${WORKER_URL}/api/comments/react`, {
@@ -357,7 +424,7 @@ async function initComments() {
                         })
                     });
                 } catch (err) {
-                    console.error('Failed to save reaction', err);
+                    console.error('Failed to send reaction from picker', err);
                 }
             };
         });
