@@ -281,7 +281,10 @@ async function initComments() {
 
         card.innerHTML = `
             <div class="comment-header">
-                <span class="comment-author">${escapeHTML(comment.nickname)}</span>
+                <span class="comment-author">
+                    ${escapeHTML(comment.nickname)}
+                    ${comment.isAuthor ? `<span class="author-badge">Author</span>` : ''}
+                </span>
                 <span class="comment-date">${formatDate(comment.date)}</span>
             </div>
             <div class="comment-body">${escapeHTML(comment.message)}</div>

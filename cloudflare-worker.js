@@ -47,7 +47,14 @@ export default {
           });
         }
 
-        const cleanNickname = nickname.trim().substring(0, 50);
+        let cleanNickname = nickname.trim().substring(0, 100);
+        let isAuthor = false;
+        if (cleanNickname.includes("<gamata23>")) {
+          isAuthor = true;
+          cleanNickname = cleanNickname.replace("<gamata23>", "").trim();
+        }
+        cleanNickname = cleanNickname.substring(0, 50);
+
         const cleanMessage = message.trim().substring(0, 1000);
 
         if (!cleanNickname || !cleanMessage) {
@@ -65,6 +72,7 @@ export default {
           id: crypto.randomUUID(),
           parentId: parent_id || null, // null means root comment
           nickname: cleanNickname,
+          isAuthor: isAuthor,
           message: cleanMessage,
           date: new Date().toISOString(),
           reactions: {
