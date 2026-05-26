@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{page_title}}</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Space+Grotesk:wght@400;600&display=swap"
+        rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/assets/css/style.css?v=4">
+</head>
+
+<body>
+    <!-- Background overlay -->
+    <div class="bg-overlay"></div>
+
+    <div class="page-container">
+        <!-- Top Minimal Audio Bar -->
+        <header class="top-bar-minimal notranslate">
+            <div class="audio-player">
+                <button id="play-pause-btn" class="btn-minimal">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                </button>
+                <div class="track-info">
+                    <span class="track-name">now playing: Astrum Unicum Stars, Rebirth, and You</span>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="audio-progress"></div>
+                    </div>
+                </div>
+
+                <div class="volume-control">
+                    <button id="mute-btn" class="btn-minimal" title="Mute/Unmute">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2"
+                            fill="none">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                            <path class="vol-waves" d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                            <path class="vol-waves" d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                            <line class="vol-mute" x1="23" y1="1" x2="1" y2="23" style="display:none;"></line>
+                        </svg>
+                    </button>
+                    <input type="range" id="volume-slider" class="volume-slider" min="0" max="1" step="0.01"
+                        value="0.5">
+                </div>
+
+                <audio id="bg-audio" loop src="/assets/audio/1.mp3"></audio>
+            </div>
+        </header>
+
+        <div class="split-layout">
+            <!-- Left Sidebar Navigation -->
+            <aside class="sidebar notranslate">
+                <div class="profile-section">
+                    <h1 class="site-title">Ray Blog</h1>
+                    <p class="site-desc">Building fun things for myself then maybe for you guys :D</p>
+                </div>
+                <nav class="nav-menu">
+                    <ul>
+                        {{nav_links}}
+                    </ul>
+                </nav>
+                <div class="lang-selector-custom notranslate">
+                    <a href="#" onclick="changeLanguage('', event); return false;" class="lang-btn active">ORI</a>
+                    <span class="separator">/</span>
+                    <a href="#" onclick="changeLanguage('id', event); return false;" class="lang-btn">ID</a>
+                    <span class="separator">/</span>
+                    <a href="#" onclick="changeLanguage('en', event); return false;" class="lang-btn">EN</a>
+                </div>
+                <!-- Hide actual google translate widget securely without preventing its render -->
+                <div id="google_translate_element"
+                    style="position: absolute; opacity: 0; width: 1px; height: 1px; overflow: hidden; pointer-events: none;">
+                </div>
+            </aside>
+
+            <!-- Right Main Content -->
+            <main class="main-content">
+                {{main_content}}
+            </main>
+        </div>
+    </div>
+
+    <!-- Cute GIF in corner -->
+    <div class="funny-corner notranslate">
+        <img class="corner-gif corner-right" src="/assets/sk.gif" alt="">
+    </div>
+
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'auto',
+                includedLanguages: 'en,id',
+                autoDisplay: false
+            }, 'google_translate_element');
+        }
+
+        function changeLanguage(langCode, event) {
+            var select = document.querySelector('.goog-te-combo');
+            var mainContent = document.querySelector('.main-content');
+
+            if (langCode === '') {
+                // Protect new content from being immediately re-translated by MutationObserver
+                if (mainContent) mainContent.classList.add('notranslate');
+                
+                // 1. Clear Google Translate cookies completely
+                document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + location.hostname + ";";
+
+                // 2. Reset the select box to tell Google Translate to stop tracking
+                if (select) {
+                    select.value = '';
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                // 3. Forcefully reload the main content using PJAX to clear all Google Translate injected tags
+                if (window.pjaxLoadPage) {
+                    window.pjaxLoadPage(window.location.href);
+                } else {
+                    window.location.reload();
+                }
+            } else {
+                // Re-enable translations for main content
+                if (mainContent) mainContent.classList.remove('notranslate');
+                
+                if (select) {
+                    select.value = langCode;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+
+            // Update active state
+            document.querySelectorAll('.lang-btn').forEach(function (el) {
+                el.classList.remove('active');
+            });
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
+        }
+    </script>
+    <script type="text/javascript"
+        src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    <script src="/assets/js/main.js"></script>
+</body>
+
+</html>

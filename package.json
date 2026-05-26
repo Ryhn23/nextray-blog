@@ -1,0 +1,23 @@
+{
+  "name": "nextray-ssg",
+  "version": "1.0.0",
+  "description": "Custom lightweight SSG for Cloudflare Pages",
+  "main": "build.js",
+  "type": "module",
+  "scripts": {
+    "build": "node build.js",
+    "watch": "nodemon -e md,html,css,js -w src -w templates -x \"node build.js\"",
+    "serve": "live-server public --port=3000 --no-browser",
+    "dev": "npm-run-all --parallel watch serve"
+  },
+  "dependencies": {
+    "fs-extra": "^11.2.0",
+    "gray-matter": "^4.0.3",
+    "marked": "^12.0.2"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2",
+    "nodemon": "^3.1.2",
+    "npm-run-all": "^4.1.5"
+  }
+}
