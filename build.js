@@ -95,7 +95,8 @@ async function build() {
         let contentHtml = postTpl
             .replace('{{content}}', post.html)
             .replace('{{title}}', post.title)
-            .replace('{{date}}', post.date);
+            .replace('{{date}}', post.date)
+            .replace('{{page_id}}', post.slug);
 
         let finalHtml = layoutTpl
             .replace('{{nav_links}}', navLinksHTML)

@@ -9,14 +9,31 @@
 
     <div class="post-footer">
         <div class="comments-section">
-            <!-- Giscus placeholder -->
-            <div id="giscus-container">
-                <script src="https://giscus.app/client.js" data-repo="Ryhn23/nextray-blog" data-repo-id="R_kgDOSn6y1g"
-                    data-category="Comment" data-category-id="DIC_kwDOSn6y1s4C92jx" data-mapping="pathname"
-                    data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="bottom"
-                    data-theme="transparent_dark" data-lang="en" crossorigin="anonymous" async>
-                    </script>
+            <h3>Comments</h3>
+            
+            <!-- Dynamic comments list container -->
+            <div id="comments-container" class="comments-container">
+                <div class="loading-comments">Memuat komentar...</div>
             </div>
+
+            <!-- Custom native comment form -->
+            <form id="comment-form" class="comment-form">
+                <input type="hidden" id="comment-post-id" value="{{page_id}}">
+                
+                <div class="form-group-row">
+                    <div class="form-group">
+                        <label for="comment-nickname">Nama</label>
+                        <input type="text" id="comment-nickname" required placeholder="Nama samaranmu..." autocomplete="off">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="comment-message">Pesan</label>
+                    <textarea id="comment-message" required placeholder="Tulis komentar di sini..." rows="4"></textarea>
+                </div>
+
+                <button type="submit" id="comment-submit-btn" class="btn-minimal">Kirim Komentar</button>
+            </form>
         </div>
     </div>
 </article>

@@ -509,3 +509,126 @@ html {
         padding-top: 30px;
     }
 }
+
+/* Custom Native Comments Section */
+.comments-section {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.comments-container {
+    margin-bottom: 2.5rem;
+}
+
+.loading-comments, .no-comments {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    font-style: italic;
+    padding: 1rem 0;
+}
+
+.comment-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.2rem;
+    margin-bottom: 1rem;
+    backdrop-filter: blur(10px);
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.comment-card:hover {
+    border-color: var(--text-accent);
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+    font-size: 0.85rem;
+}
+
+.comment-author {
+    font-weight: 600;
+    color: var(--text-accent);
+}
+
+.comment-date {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+.comment-body {
+    color: var(--text-main);
+    line-height: 1.5;
+    font-size: 0.95rem;
+    white-space: pre-wrap;
+}
+
+/* Comment Form */
+.comment-form {
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    backdrop-filter: blur(10px);
+}
+
+.form-group {
+    margin-bottom: 1.2rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.comment-form input[type="text"],
+.comment-form textarea {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.8rem;
+    color: var(--text-main);
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.comment-form input[type="text"]:focus,
+.comment-form textarea:focus {
+    border-color: var(--text-accent);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+}
+
+.comment-form textarea {
+    resize: vertical;
+}
+
+#comment-submit-btn {
+    width: auto;
+    padding: 0.8rem 1.5rem;
+    font-size: 0.9rem;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-accent);
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+#comment-submit-btn:hover {
+    border-color: var(--text-accent);
+    background: rgba(255, 255, 255, 0.03);
+}

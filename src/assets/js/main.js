@@ -19,7 +19,7 @@ function initAudioPlayer() {
 
     if (volumeSlider) {
         audio.volume = volumeSlider.value;
-        
+
         volumeSlider.addEventListener('input', (e) => {
             audio.volume = e.target.value;
             if (audio.volume == 0) {
@@ -105,18 +105,146 @@ function initPageContent() {
         viewCountEl.textContent = randomViews.toLocaleString();
     }
 
-    // Re-initialize Giscus because scripts inside innerHTML don't execute automatically
-    const giscusContainer = document.getElementById('giscus-container');
-    if (giscusContainer) {
-        const oldScript = giscusContainer.querySelector('script');
-        if (oldScript) {
-            const newScript = document.createElement('script');
-            // Copy all attributes (src, data-repo, etc.) from template
-            Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-            oldScript.remove();
-            giscusContainer.appendChild(newScript); // This triggers the browser to load it
-        }
+    // Initialize custom native Cloudflare Worker comments
+    initComments();
+}
+
+async function initComments() {
+    const commentsContainer = document.getElementById('comments-container');
+    const commentForm = document.getElementById('comment-form');
+    if (!commentsContainer || !commentForm) return;
+
+    // TODO: Ganti dengan URL Cloudflare Worker punyamu setelah di-deploy
+    const WORKER_URL = "https://nextray-comments.nextray.workers.dev";
+
+    const postIdInput = document.getElementById('comment-post-id');
+    if (!postIdInput) return;
+    const postId = postIdInput.value;
+
+    const nicknameInput = document.getElementById('comment-nickname');
+    const messageInput = document.getElementById('comment-message');
+    const submitBtn = document.getElementById('comment-submit-btn');
+
+    // Helper to format date
+    const formatDate = (isoString) => {
+        const d = new Date(isoString);
+        return d.toLocaleDateString('id-ID', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    // Helper to escape HTML to prevent XSS
+    function escapeHTML(str) {
+        return str.replace(/[&<>'"]/g,
+            tag => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                "'": '&#39;',
+                '"': '&quot;'
+            }[tag] || tag)
+        );
     }
+
+    // 1. Fetch Comments from Cloudflare Worker
+    try {
+        commentsContainer.innerHTML = '<div class="loading-comments">Memuat komentar...</div>';
+        const response = await fetch(`${WORKER_URL}/api/comments?post_id=${encodeURIComponent(postId)}`);
+        if (!response.ok) throw new Error('Gagal mengambil komentar');
+        const comments = await response.json();
+
+        if (comments.length === 0) {
+            commentsContainer.innerHTML = '<div class="no-comments">Belum ada komentar. Jadilah yang pertama!</div>';
+        } else {
+            commentsContainer.innerHTML = '';
+            comments.forEach(comment => {
+                const card = document.createElement('div');
+                card.className = 'comment-card';
+                card.innerHTML = `
+                    <div class="comment-header">
+                        <span class="comment-author">${escapeHTML(comment.nickname)}</span>
+                        <span class="comment-date">${formatDate(comment.date)}</span>
+                    </div>
+                    <div class="comment-body">${escapeHTML(comment.message)}</div>
+                `;
+                commentsContainer.appendChild(card);
+            });
+        }
+    } catch (err) {
+        console.error(err);
+        commentsContainer.innerHTML = '<div class="no-comments" style="color: #ff6b6b;">Gagal memuat komentar. Pastikan Worker URL sudah di-setup dengan benar.</div>';
+    }
+
+    // 2. Handle Submit Comment
+    commentForm.onsubmit = async (e) => {
+        e.preventDefault();
+
+        const nickname = nicknameInput.value.trim();
+        const message = messageInput.value.trim();
+
+        if (!nickname || !message) return;
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Mengirim...';
+
+        try {
+            const response = await fetch(`${WORKER_URL}/api/comments`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    post_id: postId,
+                    nickname: nickname,
+                    message: message
+                })
+            });
+
+            if (!response.ok) throw new Error('Gagal mengirim komentar');
+            const newComment = await response.json();
+
+            // Clear input message, but preserve nickname for convenience!
+            messageInput.value = '';
+
+            // Remove "no comments" text if it was there
+            const noCommentsEl = commentsContainer.querySelector('.no-comments');
+            if (noCommentsEl) {
+                commentsContainer.innerHTML = '';
+            }
+
+            // Append new comment smoothly
+            const card = document.createElement('div');
+            card.className = 'comment-card';
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(10px)';
+            card.style.transition = 'all 0.3s ease';
+            card.innerHTML = `
+                <div class="comment-header">
+                    <span class="comment-author">${escapeHTML(newComment.nickname)}</span>
+                    <span class="comment-date">${formatDate(newComment.date)}</span>
+                </div>
+                <div class="comment-body">${escapeHTML(newComment.message)}</div>
+            `;
+            commentsContainer.appendChild(card);
+
+            // Trigger animation reflow
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 50);
+
+        } catch (err) {
+            console.error(err);
+            alert('Gagal mengirim komentar. Silakan coba lagi.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'Kirim Komentar';
+        }
+    };
 }
 
 function initPjax() {
@@ -127,16 +255,16 @@ function initPjax() {
         try {
             const response = await fetch(url);
             const html = await response.text();
-            
+
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            
+
             const newMainContent = doc.querySelector('.main-content').innerHTML;
             const newTitle = doc.querySelector('title').innerText;
-            
+
             mainContent.innerHTML = newMainContent;
             document.title = newTitle;
-            
+
             window.history.pushState({}, newTitle, url);
 
             initPageContent();
@@ -168,16 +296,16 @@ function initPjax() {
         try {
             const mainContent = document.querySelector('.main-content');
             mainContent.style.opacity = '0.3';
-            
+
             const response = await fetch(window.location.href);
             const html = await response.text();
-            
+
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            
+
             mainContent.innerHTML = doc.querySelector('.main-content').innerHTML;
             document.title = doc.querySelector('title').innerText;
-            
+
             initPageContent();
             mainContent.style.opacity = '1';
         } catch (err) {
