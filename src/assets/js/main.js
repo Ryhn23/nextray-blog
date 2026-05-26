@@ -150,19 +150,24 @@ async function initPostReactions() {
         btn.onclick = async () => {
             const emoji = btn.getAttribute('data-emoji');
             const hasReacted = localStorage.getItem(`post_reacted_${postId}_${emoji}`) === 'true';
-
-            // Anti-spam: only allow reacting once per browser session
-            if (hasReacted) return;
-
-            // Optimistic UI update
             const countSpan = btn.querySelector('.reaction-count');
             const currentCount = parseInt(countSpan.innerText);
-            countSpan.innerText = currentCount + 1;
-            btn.classList.add('active');
-            localStorage.setItem(`post_reacted_${postId}_${emoji}`, 'true');
-
-            // Float emoji effect for a beautiful visual touch!
-            createFloatingEmoji(emoji, btn);
+            
+            let action = "react";
+            if (hasReacted) {
+                action = "unreact";
+                countSpan.innerText = Math.max(0, currentCount - 1);
+                btn.classList.remove('active');
+                localStorage.setItem(`post_reacted_${postId}_${emoji}`, 'false');
+            } else {
+                action = "react";
+                countSpan.innerText = currentCount + 1;
+                btn.classList.add('active');
+                localStorage.setItem(`post_reacted_${postId}_${emoji}`, 'true');
+                
+                // Float emoji effect for a beautiful visual touch!
+                createFloatingEmoji(emoji, btn);
+            }
 
             try {
                 await fetch(`${WORKER_URL}/api/post/react`, {
@@ -170,7 +175,8 @@ async function initPostReactions() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         post_id: postId,
-                        emoji: emoji
+                        emoji: emoji,
+                        action: action
                     })
                 });
             } catch (err) {
@@ -269,8 +275,8 @@ async function initComments() {
         card.className = 'comment-card';
         card.id = `comment-${comment.id}`;
 
-        const reactions = comment.reactions || { "👍": 0, "❤️": 0, "🔥": 0, "😂": 0 };
-        const emojis = ["👍", "❤️", "🔥", "😂"];
+        const reactions = comment.reactions || { "👍": 0, "❤️": 0, "🔥": 0, "😂": 0, "😢": 0, "🗿": 0 };
+        const emojis = ["👍", "❤️", "🔥", "😂", "😢", "🗿"];
 
         let reactionsHTML = emojis.map(emoji => {
             const count = reactions[emoji] || 0;
@@ -323,16 +329,21 @@ async function initComments() {
             btn.onclick = async () => {
                 const emoji = btn.getAttribute('data-emoji');
                 const hasReacted = localStorage.getItem(`reacted_${comment.id}_${emoji}`) === 'true';
-                
-                // Anti-spam: only allow reacting once per browser session
-                if (hasReacted) return;
-
-                // Optimistic UI update
                 const countSpan = btn.querySelector('.reaction-count');
                 const currentCount = parseInt(countSpan.innerText);
-                countSpan.innerText = currentCount + 1;
-                btn.classList.add('active');
-                localStorage.setItem(`reacted_${comment.id}_${emoji}`, 'true');
+                
+                let action = "react";
+                if (hasReacted) {
+                    action = "unreact";
+                    countSpan.innerText = Math.max(0, currentCount - 1);
+                    btn.classList.remove('active');
+                    localStorage.setItem(`reacted_${comment.id}_${emoji}`, 'false');
+                } else {
+                    action = "react";
+                    countSpan.innerText = currentCount + 1;
+                    btn.classList.add('active');
+                    localStorage.setItem(`reacted_${comment.id}_${emoji}`, 'true');
+                }
 
                 try {
                     await fetch(`${WORKER_URL}/api/comments/react`, {
@@ -341,7 +352,8 @@ async function initComments() {
                         body: JSON.stringify({
                             post_id: postId,
                             comment_id: comment.id,
-                            emoji: emoji
+                            emoji: emoji,
+                            action: action
                         })
                     });
                 } catch (err) {

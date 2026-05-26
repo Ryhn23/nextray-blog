@@ -11,6 +11,7 @@ export default {
     }
 
     const url = new URL(request.url);
+    const validEmojis = ["👍", "❤️", "🔥", "😂", "😢", "🗿"];
 
     // ==========================================
     // 1. COMMENTS ENDPOINTS
@@ -70,7 +71,9 @@ export default {
             "👍": 0,
             "❤️": 0,
             "🔥": 0,
-            "😂": 0
+            "😂": 0,
+            "😢": 0,
+            "🗿": 0
           }
         };
 
@@ -88,10 +91,10 @@ export default {
       }
     }
 
-    // API to increment reactions: POST /api/comments/react
+    // API to react/unreact comments: POST /api/comments/react
     if (url.pathname === "/api/comments/react" && request.method === "POST") {
       try {
-        const { post_id, comment_id, emoji } = await request.json();
+        const { post_id, comment_id, emoji, action } = await request.json();
 
         if (!post_id || !comment_id || !emoji) {
           return new Response(JSON.stringify({ error: "Missing fields" }), {
@@ -100,7 +103,6 @@ export default {
           });
         }
 
-        const validEmojis = ["👍", "❤️", "🔥", "😂"];
         if (!validEmojis.includes(emoji)) {
           return new Response(JSON.stringify({ error: "Invalid emoji" }), {
             status: 400,
@@ -127,10 +129,21 @@ export default {
         }
 
         if (!comment.reactions) {
-          comment.reactions = { "👍": 0, "❤️": 0, "🔥": 0, "😂": 0 };
+          comment.reactions = {};
         }
+        
+        // Ensure all valid emojis are initialized in reactions object
+        validEmojis.forEach(em => {
+          if (comment.reactions[em] === undefined) {
+            comment.reactions[em] = 0;
+          }
+        });
 
-        comment.reactions[emoji] = (comment.reactions[emoji] || 0) + 1;
+        if (action === "unreact") {
+          comment.reactions[emoji] = Math.max(0, (comment.reactions[emoji] || 1) - 1);
+        } else {
+          comment.reactions[emoji] = (comment.reactions[emoji] || 0) + 1;
+        }
 
         await env.COMMENTS_KV.put(`comments:${post_id}`, JSON.stringify(comments));
 
@@ -160,17 +173,23 @@ export default {
       }
 
       const reactionsJson = await env.COMMENTS_KV.get(`post_reactions:${postId}`);
-      const reactions = reactionsJson ? JSON.parse(reactionsJson) : { "👍": 0, "❤️": 0, "🔥": 0, "😂": 0 };
+      let reactions = reactionsJson ? JSON.parse(reactionsJson) : {};
+      
+      // Initialize default emojis structure
+      const defaultReactions = {};
+      validEmojis.forEach(em => {
+        defaultReactions[em] = reactions[em] || 0;
+      });
 
-      return new Response(JSON.stringify(reactions), {
+      return new Response(JSON.stringify(defaultReactions), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
 
-    // API to increment post reactions: POST /api/post/react
+    // API to react/unreact post: POST /api/post/react
     if (url.pathname === "/api/post/react" && request.method === "POST") {
       try {
-        const { post_id, emoji } = await request.json();
+        const { post_id, emoji, action } = await request.json();
 
         if (!post_id || !emoji) {
           return new Response(JSON.stringify({ error: "Missing fields" }), {
@@ -179,7 +198,6 @@ export default {
           });
         }
 
-        const validEmojis = ["👍", "❤️", "🔥", "😂"];
         if (!validEmojis.includes(emoji)) {
           return new Response(JSON.stringify({ error: "Invalid emoji" }), {
             status: 400,
@@ -188,9 +206,20 @@ export default {
         }
 
         const reactionsJson = await env.COMMENTS_KV.get(`post_reactions:${post_id}`);
-        const reactions = reactionsJson ? JSON.parse(reactionsJson) : { "👍": 0, "❤️": 0, "🔥": 0, "😂": 0 };
+        let reactions = reactionsJson ? JSON.parse(reactionsJson) : {};
 
-        reactions[emoji] = (reactions[emoji] || 0) + 1;
+        // Ensure all valid emojis are initialized in reactions object
+        validEmojis.forEach(em => {
+          if (reactions[em] === undefined) {
+            reactions[em] = 0;
+          }
+        });
+
+        if (action === "unreact") {
+          reactions[emoji] = Math.max(0, (reactions[emoji] || 1) - 1);
+        } else {
+          reactions[emoji] = (reactions[emoji] || 0) + 1;
+        }
 
         await env.COMMENTS_KV.put(`post_reactions:${post_id}`, JSON.stringify(reactions));
 
