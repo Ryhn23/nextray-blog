@@ -8,31 +8,56 @@
     </div>
 
     <div class="post-footer">
+        <!-- Post Reactions Section -->
+        <div class="post-reactions-container">
+            <h4 class="reactions-title">Enjoyed this post? React to it!</h4>
+            <div id="post-reactions" class="post-reactions">
+                <button type="button" class="post-reaction-btn" data-emoji="👍">
+                    <span>👍</span> <span class="reaction-count">0</span>
+                </button>
+                <button type="button" class="post-reaction-btn" data-emoji="❤️">
+                    <span>❤️</span> <span class="reaction-count">0</span>
+                </button>
+                <button type="button" class="post-reaction-btn" data-emoji="🔥">
+                    <span>🔥</span> <span class="reaction-count">0</span>
+                </button>
+                <button type="button" class="post-reaction-btn" data-emoji="😂">
+                    <span>😂</span> <span class="reaction-count">0</span>
+                </button>
+            </div>
+        </div>
+
         <div class="comments-section">
             <h3>Comments</h3>
             
             <!-- Dynamic comments list container -->
             <div id="comments-container" class="comments-container">
-                <div class="loading-comments">Memuat komentar...</div>
+                <div class="loading-comments">Loading comments...</div>
             </div>
 
-            <!-- Custom native comment form -->
             <form id="comment-form" class="comment-form">
                 <input type="hidden" id="comment-post-id" value="{{page_id}}">
+                <input type="hidden" id="comment-parent-id" value="">
+                
+                <!-- Reply Indicator -->
+                <div id="reply-indicator" class="reply-indicator" style="display: none;">
+                    <span>Replying to <strong id="reply-target-author"></strong></span>
+                    <button type="button" id="cancel-reply-btn" class="cancel-reply-btn" title="Cancel reply">&times;</button>
+                </div>
                 
                 <div class="form-group-row">
                     <div class="form-group">
-                        <label for="comment-nickname">Nama</label>
-                        <input type="text" id="comment-nickname" required placeholder="Nama samaranmu..." autocomplete="off">
+                        <label for="comment-nickname">Name</label>
+                        <input type="text" id="comment-nickname" required placeholder="Your nickname..." autocomplete="off">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="comment-message">Pesan</label>
-                    <textarea id="comment-message" required placeholder="Tulis komentar di sini..." rows="4"></textarea>
+                    <label for="comment-message">Message</label>
+                    <textarea id="comment-message" required placeholder="Write your comment here..." rows="4"></textarea>
                 </div>
 
-                <button type="submit" id="comment-submit-btn" class="btn-minimal">Kirim Komentar</button>
+                <button type="submit" id="comment-submit-btn" class="btn-minimal">Post Comment</button>
             </form>
         </div>
     </div>

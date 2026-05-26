@@ -105,8 +105,109 @@ function initPageContent() {
         viewCountEl.textContent = randomViews.toLocaleString();
     }
 
-    // Initialize custom native Cloudflare Worker comments
+    // Initialize custom native Cloudflare Worker comments & post reactions
     initComments();
+    initPostReactions();
+}
+
+async function initPostReactions() {
+    const reactionsContainer = document.getElementById('post-reactions');
+    if (!reactionsContainer) return;
+
+    const WORKER_URL = "https://nextray-comments.nextray.workers.dev"; 
+
+    const postIdInput = document.getElementById('comment-post-id');
+    if (!postIdInput) return;
+    const postId = postIdInput.value;
+
+    const buttons = reactionsContainer.querySelectorAll('.post-reaction-btn');
+
+    // 1. Fetch current reactions
+    try {
+        const response = await fetch(`${WORKER_URL}/api/post/reactions?post_id=${encodeURIComponent(postId)}`);
+        if (!response.ok) throw new Error('Failed to fetch post reactions');
+        const reactions = await response.json();
+
+        // Update UI counts
+        buttons.forEach(btn => {
+            const emoji = btn.getAttribute('data-emoji');
+            const countSpan = btn.querySelector('.reaction-count');
+            const count = reactions[emoji] || 0;
+            countSpan.innerText = count;
+
+            // Highlight if already reacted in localStorage
+            const hasReacted = localStorage.getItem(`post_reacted_${postId}_${emoji}`) === 'true';
+            if (hasReacted) {
+                btn.classList.add('active');
+            }
+        });
+    } catch (err) {
+        console.error(err);
+    }
+
+    // 2. Handle reaction clicks
+    buttons.forEach(btn => {
+        btn.onclick = async () => {
+            const emoji = btn.getAttribute('data-emoji');
+            const hasReacted = localStorage.getItem(`post_reacted_${postId}_${emoji}`) === 'true';
+
+            // Anti-spam: only allow reacting once per browser session
+            if (hasReacted) return;
+
+            // Optimistic UI update
+            const countSpan = btn.querySelector('.reaction-count');
+            const currentCount = parseInt(countSpan.innerText);
+            countSpan.innerText = currentCount + 1;
+            btn.classList.add('active');
+            localStorage.setItem(`post_reacted_${postId}_${emoji}`, 'true');
+
+            // Float emoji effect for a beautiful visual touch!
+            createFloatingEmoji(emoji, btn);
+
+            try {
+                await fetch(`${WORKER_URL}/api/post/react`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        post_id: postId,
+                        emoji: emoji
+                    })
+                });
+            } catch (err) {
+                console.error('Failed to save post reaction', err);
+            }
+        };
+    });
+
+    // Helper to create a cute floating emoji effect
+    function createFloatingEmoji(emoji, targetBtn) {
+        const floatEl = document.createElement('span');
+        floatEl.innerText = emoji;
+        floatEl.style.position = 'absolute';
+        floatEl.style.fontSize = '1.5rem';
+        floatEl.style.pointerEvents = 'none';
+        floatEl.style.transition = 'all 0.8s cubic-bezier(0.25, 1, 0.5, 1)';
+        floatEl.style.opacity = '1';
+        floatEl.style.zIndex = '999';
+        
+        // Position relative to button
+        const rect = targetBtn.getBoundingClientRect();
+        floatEl.style.left = `${window.scrollX + rect.left + rect.width / 2 - 10}px`;
+        floatEl.style.top = `${window.scrollY + rect.top - 10}px`;
+
+        document.body.appendChild(floatEl);
+
+        // Animate up and fade out
+        setTimeout(() => {
+            floatEl.style.transform = `translateY(-60px) scale(1.4) rotate(${Math.random() * 40 - 20}deg)`;
+            floatEl.style.opacity = '0';
+        }, 10);
+
+        // Remove after animation completes
+        setTimeout(() => {
+            floatEl.remove();
+        }, 800);
+    }
 }
 
 async function initComments() {
@@ -114,12 +215,16 @@ async function initComments() {
     const commentForm = document.getElementById('comment-form');
     if (!commentsContainer || !commentForm) return;
 
-    // TODO: Ganti dengan URL Cloudflare Worker punyamu setelah di-deploy
-    const WORKER_URL = "https://nextray-comments.nextray.workers.dev";
+    const WORKER_URL = "https://nextray-comments.nextray.workers.dev"; 
 
     const postIdInput = document.getElementById('comment-post-id');
     if (!postIdInput) return;
     const postId = postIdInput.value;
+
+    const parentIdInput = document.getElementById('comment-parent-id');
+    const replyIndicator = document.getElementById('reply-indicator');
+    const replyTargetAuthor = document.getElementById('reply-target-author');
+    const cancelReplyBtn = document.getElementById('cancel-reply-btn');
 
     const nicknameInput = document.getElementById('comment-nickname');
     const messageInput = document.getElementById('comment-message');
@@ -128,7 +233,7 @@ async function initComments() {
     // Helper to format date
     const formatDate = (isoString) => {
         const d = new Date(isoString);
-        return d.toLocaleDateString('id-ID', {
+        return d.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
@@ -150,46 +255,166 @@ async function initComments() {
         );
     }
 
-    // 1. Fetch Comments from Cloudflare Worker
+    // Cancel reply handler
+    if (cancelReplyBtn) {
+        cancelReplyBtn.onclick = () => {
+            parentIdInput.value = '';
+            replyIndicator.style.display = 'none';
+        };
+    }
+
+    // Render helper for single comment card
+    const createCommentCard = (comment, isReply = false) => {
+        const card = document.createElement('div');
+        card.className = 'comment-card';
+        card.id = `comment-${comment.id}`;
+
+        const reactions = comment.reactions || { "👍": 0, "❤️": 0, "🔥": 0, "😂": 0 };
+        const emojis = ["👍", "❤️", "🔥", "😂"];
+
+        let reactionsHTML = emojis.map(emoji => {
+            const count = reactions[emoji] || 0;
+            const hasReacted = localStorage.getItem(`reacted_${comment.id}_${emoji}`) === 'true';
+            return `
+                <button type="button" class="reaction-btn ${hasReacted ? 'active' : ''}" data-emoji="${emoji}">
+                    <span>${emoji}</span>
+                    <span class="reaction-count">${count}</span>
+                </button>
+            `;
+        }).join('');
+
+        card.innerHTML = `
+            <div class="comment-header">
+                <span class="comment-author">${escapeHTML(comment.nickname)}</span>
+                <span class="comment-date">${formatDate(comment.date)}</span>
+            </div>
+            <div class="comment-body">${escapeHTML(comment.message)}</div>
+            <div class="comment-actions">
+                <button type="button" class="comment-reply-btn" data-id="${comment.id}" data-author="${comment.nickname}" data-parent="${comment.parentId || comment.id}">
+                    Reply
+                </button>
+                <div class="comment-reactions">
+                    ${reactionsHTML}
+                </div>
+            </div>
+        `;
+
+        // Bind reply click inside this card
+        const replyBtn = card.querySelector('.comment-reply-btn');
+        replyBtn.onclick = () => {
+            const parentId = replyBtn.getAttribute('data-parent');
+            const author = replyBtn.getAttribute('data-author');
+            
+            parentIdInput.value = parentId;
+            replyTargetAuthor.innerText = `@${author}`;
+            replyIndicator.style.display = 'flex';
+            
+            // Prefill reply text with mention if it's a sub-reply
+            if (comment.parentId) {
+                messageInput.value = `@${author} `;
+            }
+            
+            commentForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            messageInput.focus();
+        };
+
+        // Bind emoji clicks
+        card.querySelectorAll('.reaction-btn').forEach(btn => {
+            btn.onclick = async () => {
+                const emoji = btn.getAttribute('data-emoji');
+                const hasReacted = localStorage.getItem(`reacted_${comment.id}_${emoji}`) === 'true';
+                
+                // Anti-spam: only allow reacting once per browser session
+                if (hasReacted) return;
+
+                // Optimistic UI update
+                const countSpan = btn.querySelector('.reaction-count');
+                const currentCount = parseInt(countSpan.innerText);
+                countSpan.innerText = currentCount + 1;
+                btn.classList.add('active');
+                localStorage.setItem(`reacted_${comment.id}_${emoji}`, 'true');
+
+                try {
+                    await fetch(`${WORKER_URL}/api/comments/react`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            post_id: postId,
+                            comment_id: comment.id,
+                            emoji: emoji
+                        })
+                    });
+                } catch (err) {
+                    console.error('Failed to save reaction', err);
+                }
+            };
+        });
+
+        return card;
+    };
+
+    // 1. Fetch and render comments tree
     try {
-        commentsContainer.innerHTML = '<div class="loading-comments">Memuat komentar...</div>';
+        commentsContainer.innerHTML = '<div class="loading-comments">Loading comments...</div>';
         const response = await fetch(`${WORKER_URL}/api/comments?post_id=${encodeURIComponent(postId)}`);
-        if (!response.ok) throw new Error('Gagal mengambil komentar');
+        if (!response.ok) throw new Error('Failed to fetch comments');
         const comments = await response.json();
 
         if (comments.length === 0) {
-            commentsContainer.innerHTML = '<div class="no-comments">Belum ada komentar. Jadilah yang pertama!</div>';
+            commentsContainer.innerHTML = '<div class="no-comments">No comments yet. Be the first to comment!</div>';
         } else {
             commentsContainer.innerHTML = '';
+            
+            // Group comments by hierarchy
+            const roots = [];
+            const repliesMap = {};
+
             comments.forEach(comment => {
-                const card = document.createElement('div');
-                card.className = 'comment-card';
-                card.innerHTML = `
-                    <div class="comment-header">
-                        <span class="comment-author">${escapeHTML(comment.nickname)}</span>
-                        <span class="comment-date">${formatDate(comment.date)}</span>
-                    </div>
-                    <div class="comment-body">${escapeHTML(comment.message)}</div>
-                `;
-                commentsContainer.appendChild(card);
+                if (!comment.parentId) {
+                    roots.push(comment);
+                } else {
+                    if (!repliesMap[comment.parentId]) {
+                        repliesMap[comment.parentId] = [];
+                    }
+                    repliesMap[comment.parentId].push(comment);
+                }
+            });
+
+            // Render roots and their replies
+            roots.forEach(root => {
+                const rootCard = createCommentCard(root);
+                commentsContainer.appendChild(rootCard);
+
+                // Render nested replies container if replies exist
+                const replies = repliesMap[root.id] || [];
+                if (replies.length > 0) {
+                    const repliesWrapper = document.createElement('div');
+                    repliesWrapper.className = 'comment-replies';
+                    replies.forEach(reply => {
+                        const replyCard = createCommentCard(reply, true);
+                        repliesWrapper.appendChild(replyCard);
+                    });
+                    commentsContainer.appendChild(repliesWrapper);
+                }
             });
         }
     } catch (err) {
         console.error(err);
-        commentsContainer.innerHTML = '<div class="no-comments" style="color: #ff6b6b;">Gagal memuat komentar. Pastikan Worker URL sudah di-setup dengan benar.</div>';
+        commentsContainer.innerHTML = '<div class="no-comments" style="color: #ff6b6b;">Failed to load comments. Make sure the Worker URL is set up correctly.</div>';
     }
 
-    // 2. Handle Submit Comment
+    // 2. Handle Submit Comment / Reply
     commentForm.onsubmit = async (e) => {
         e.preventDefault();
 
         const nickname = nicknameInput.value.trim();
         const message = messageInput.value.trim();
+        const parentId = parentIdInput.value;
 
         if (!nickname || !message) return;
 
         submitBtn.disabled = true;
-        submitBtn.innerText = 'Mengirim...';
+        submitBtn.innerText = 'Posting...';
 
         try {
             const response = await fetch(`${WORKER_URL}/api/comments`, {
@@ -200,49 +425,60 @@ async function initComments() {
                 body: JSON.stringify({
                     post_id: postId,
                     nickname: nickname,
-                    message: message
+                    message: message,
+                    parent_id: parentId || null
                 })
             });
 
-            if (!response.ok) throw new Error('Gagal mengirim komentar');
+            if (!response.ok) throw new Error('Failed to post comment');
             const newComment = await response.json();
 
-            // Clear input message, but preserve nickname for convenience!
+            // Reset form
             messageInput.value = '';
+            parentIdInput.value = '';
+            replyIndicator.style.display = 'none';
 
-            // Remove "no comments" text if it was there
+            // Remove "no comments" message if present
             const noCommentsEl = commentsContainer.querySelector('.no-comments');
             if (noCommentsEl) {
                 commentsContainer.innerHTML = '';
             }
 
-            // Append new comment smoothly
-            const card = document.createElement('div');
-            card.className = 'comment-card';
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(10px)';
-            card.style.transition = 'all 0.3s ease';
-            card.innerHTML = `
-                <div class="comment-header">
-                    <span class="comment-author">${escapeHTML(newComment.nickname)}</span>
-                    <span class="comment-date">${formatDate(newComment.date)}</span>
-                </div>
-                <div class="comment-body">${escapeHTML(newComment.message)}</div>
-            `;
-            commentsContainer.appendChild(card);
+            const newCard = createCommentCard(newComment, !!parentId);
+            newCard.style.opacity = '0';
+            newCard.style.transform = 'translateY(10px)';
+            newCard.style.transition = 'all 0.3s ease';
 
-            // Trigger animation reflow
+            if (parentId) {
+                // Find or create nested replies wrapper under parent card
+                const parentCard = document.getElementById(`comment-${parentId}`);
+                if (parentCard) {
+                    let repliesWrapper = parentCard.nextElementSibling;
+                    if (!repliesWrapper || !repliesWrapper.classList.contains('comment-replies')) {
+                        repliesWrapper = document.createElement('div');
+                        repliesWrapper.className = 'comment-replies';
+                        parentCard.parentNode.insertBefore(repliesWrapper, parentCard.nextSibling);
+                    }
+                    repliesWrapper.appendChild(newCard);
+                } else {
+                    commentsContainer.appendChild(newCard);
+                }
+            } else {
+                commentsContainer.appendChild(newCard);
+            }
+
+            // Smooth reveal
             setTimeout(() => {
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
+                newCard.style.opacity = '1';
+                newCard.style.transform = 'translateY(0)';
             }, 50);
 
         } catch (err) {
             console.error(err);
-            alert('Gagal mengirim komentar. Silakan coba lagi.');
+            alert('Failed to post comment. Please try again.');
         } finally {
             submitBtn.disabled = false;
-            submitBtn.innerText = 'Kirim Komentar';
+            submitBtn.innerText = 'Post Comment';
         }
     };
 }
