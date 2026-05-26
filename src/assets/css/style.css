@@ -415,13 +415,13 @@ body {
 }
 
 .corner-left {
-    bottom: 20px;
+    bottom: 10px;
     left: 20px;
 }
 
 .corner-right {
-    bottom: 5px;
-    right: 10px;
+    bottom: 30px;
+    right: 20px;
 }
 
 .funny-corner:hover .cat-placeholder {

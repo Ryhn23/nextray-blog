@@ -86,9 +86,9 @@
     </div>
 
     <!-- Cute GIF in corner -->
-    <div class="funny-corner notranslate">
+    <!-- <div class="funny-corner notranslate">
         <img class="corner-gif corner-right" src="/assets/sk.gif" alt="">
-    </div>
+    </div> -->
 
     <script type="text/javascript">
         function googleTranslateElementInit() {
@@ -106,7 +106,7 @@
             if (langCode === '') {
                 // Protect new content from being immediately re-translated by MutationObserver
                 if (mainContent) mainContent.classList.add('notranslate');
-                
+
                 // 1. Clear Google Translate cookies completely
                 document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                 document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" + location.hostname + ";";
@@ -126,7 +126,7 @@
             } else {
                 // Re-enable translations for main content
                 if (mainContent) mainContent.classList.remove('notranslate');
-                
+
                 if (select) {
                     select.value = langCode;
                     select.dispatchEvent(new Event('change', { bubbles: true }));
