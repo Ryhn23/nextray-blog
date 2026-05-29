@@ -2,20 +2,23 @@
 title: "About Me"
 ---
 
-Welcome to my corner of the internet! I am **Ray**, a tech polymath who loves to tinker and build cool things.
+Hi, I'm **Ray**.
 
-### What I Do
+I used to teach high school math. These days, I'm studying Data Science and spending an unhealthy amount of time building things that probably didn't need to exist in the first place.
 
-My journey has been a bit of a ride—from teaching high school math to currently studying Data Science. While my roots are in Vanilla JS, HTML, and CSS, my main focus these days has shifted heavily toward AIOps, DevOps, and Machine Learning.
+Most of my early projects were built with plain HTML, CSS, and Vanilla JavaScript. Over time, my interests drifted toward Linux, infrastructure, distributed systems, AI, and anything that lets me glue together a bunch of moving parts just to see what happens.
 
-I love building systems from the ground up. Whether it's developing AI personas, managing heterogeneous cloud clusters, or hacking together IoT devices using ESP boards. 
+I enjoy building systems from the ground up—whether that's experimenting with local LLMs, orchestrating AI agents, managing heterogeneous clusters, or turning a pile of ESP boards and spare parts into something vaguely useful.
 
-I build a lot of things, but I don't memorize every syntax. I use **Opencode** as my daily driver to help me code faster. Let the AI handle the boilerplate while I focus on the architecture and the fun stuff!
+I'm not the kind of developer who memorizes every syntax rule, and honestly, I don't think that's a particularly valuable skill anymore. Tools like Opencode handle most of the repetitive work, which leaves me more time to focus on architecture, experimentation, and figuring out why something broke at 3 AM.
 
 **A few things I usually work with:**
-* **AI & Data:** Local LLMs, AI Agent Orchestration (crafting logic for SolarisNet), Custom Voice Cloning (GPT-SoVITS), and Data Science.
-* **DevOps & Infra:** Bare-Metal Provisioning, Container Orchestration (Docker Swarm), Multi-node Cluster Management, and Linux.
-* **Web & Backend:** Laravel & Filament (returning to the sane path of PHP haha), Node.js, and React.js.
-* **Hardware/IoT:** Hardware Modding, 3D Printing, and Microcontroller Prototyping (ESP32/ESP8266).
 
-When I'm not coding or reviving scrap hardware, I'm an audiophile who is currently trying to learn the piano.
+* **AI & Data:** Local LLMs, AI Agents, GPT-SoVITS, and Data Science.
+* **Infrastructure:** Bare-Metal Systems, Docker Swarm, Linux, and Multi-node Clusters.
+* **Backend & Web:** Laravel, Filament, Node.js, React, and APIs.
+* **Hardware & IoT:** ESP32/ESP8266, Hardware Modding, and 3D Printing.
+
+This blog is mostly a collection of experiments, notes, things I've learned, things I've broken, and occasionally things that actually work.
+
+When I'm not coding or rescuing old hardware from becoming e-waste, I'm usually listening to music or trying to learn piano one mistake at a time.
