@@ -18,10 +18,22 @@ function initAudioPlayer() {
     const volMuteLine = document.querySelector('.vol-mute');
 
     if (volumeSlider) {
-        audio.volume = volumeSlider.value;
+        const savedVolume = localStorage.getItem('audio_volume');
+        if (savedVolume !== null) {
+            audio.volume = parseFloat(savedVolume);
+            volumeSlider.value = audio.volume;
+        } else {
+            audio.volume = volumeSlider.value;
+        }
+
+        if (audio.volume == 0) {
+            volWaves.forEach(w => w.style.display = 'none');
+            volMuteLine.style.display = 'block';
+        }
 
         volumeSlider.addEventListener('input', (e) => {
             audio.volume = e.target.value;
+            localStorage.setItem('audio_volume', audio.volume);
             if (audio.volume == 0) {
                 volWaves.forEach(w => w.style.display = 'none');
                 volMuteLine.style.display = 'block';
@@ -31,18 +43,23 @@ function initAudioPlayer() {
             }
         });
 
-        let previousVolume = audio.volume;
+        let previousVolume = parseFloat(localStorage.getItem('audio_prev_volume')) || 0.5;
+        if (audio.volume > 0) previousVolume = audio.volume;
+
         muteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             if (audio.volume > 0) {
                 previousVolume = audio.volume;
+                localStorage.setItem('audio_prev_volume', previousVolume);
                 audio.volume = 0;
                 volumeSlider.value = 0;
+                localStorage.setItem('audio_volume', 0);
                 volWaves.forEach(w => w.style.display = 'none');
                 volMuteLine.style.display = 'block';
             } else {
                 audio.volume = previousVolume > 0 ? previousVolume : 0.5;
                 volumeSlider.value = audio.volume;
+                localStorage.setItem('audio_volume', audio.volume);
                 volWaves.forEach(w => w.style.display = 'block');
                 volMuteLine.style.display = 'none';
             }
