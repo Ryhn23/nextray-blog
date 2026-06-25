@@ -129,9 +129,8 @@ async function initPostReactions() {
         const reactions = await response.json();
 
         const upvotes = reactions["upvote"] || 0;
-        const downvotes = reactions["downvote"] || 0;
         const scoreSpan = reactionsContainer.querySelector('.post-reaction-score');
-        if (scoreSpan) scoreSpan.innerText = upvotes - downvotes;
+        if (scoreSpan) scoreSpan.innerText = upvotes;
 
         // Highlight if already reacted in localStorage
         buttons.forEach(btn => {
@@ -146,10 +145,8 @@ async function initPostReactions() {
     // 2. Handle reaction clicks
     buttons.forEach(btn => {
         btn.onclick = async () => {
-            const emoji = btn.getAttribute('data-emoji');
-            const otherEmoji = emoji === 'upvote' ? 'downvote' : 'upvote';
+            const emoji = 'upvote';
             const hasReacted = localStorage.getItem(`post_reacted_${postId}_${emoji}`) === 'true';
-            const hasOtherReacted = localStorage.getItem(`post_reacted_${postId}_${otherEmoji}`) === 'true';
             
             const scoreSpan = reactionsContainer.querySelector('.post-reaction-score');
             let currentScore = parseInt(scoreSpan.innerText);
@@ -157,29 +154,14 @@ async function initPostReactions() {
             let action = "react";
             if (hasReacted) {
                 action = "unreact";
-                currentScore = emoji === 'upvote' ? currentScore - 1 : currentScore + 1;
+                currentScore = Math.max(0, currentScore - 1);
                 btn.classList.remove('active');
                 localStorage.setItem(`post_reacted_${postId}_${emoji}`, 'false');
             } else {
                 action = "react";
-                currentScore = emoji === 'upvote' ? currentScore + 1 : currentScore - 1;
+                currentScore += 1;
                 btn.classList.add('active');
                 localStorage.setItem(`post_reacted_${postId}_${emoji}`, 'true');
-                createFloatingEmoji(emoji === 'upvote' ? '⬆️' : '⬇️', btn);
-                
-                // Remove opposite reaction if active
-                if (hasOtherReacted) {
-                    currentScore = emoji === 'upvote' ? currentScore + 1 : currentScore - 1;
-                    const otherBtn = reactionsContainer.querySelector(`.post-reaction-btn[data-emoji="${otherEmoji}"]`);
-                    if (otherBtn) otherBtn.classList.remove('active');
-                    localStorage.setItem(`post_reacted_${postId}_${otherEmoji}`, 'false');
-                    
-                    fetch(`${WORKER_URL}/api/post/react`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ post_id: postId, emoji: otherEmoji, action: 'unreact' })
-                    }).catch(e => console.error(e));
-                }
             }
             if (scoreSpan) scoreSpan.innerText = currentScore;
 
@@ -290,10 +272,8 @@ async function initComments() {
         }
 
         const upvotes = comment.reactions["upvote"] || 0;
-        const downvotes = comment.reactions["downvote"] || 0;
-        const initialScore = upvotes - downvotes;
+        const initialScore = upvotes;
         const hasUpvoted = localStorage.getItem(`reacted_${comment.id}_upvote`) === 'true';
-        const hasDownvoted = localStorage.getItem(`reacted_${comment.id}_downvote`) === 'true';
 
         card.innerHTML = `
             <div class="comment-header">
@@ -306,9 +286,10 @@ async function initComments() {
             <div class="comment-body">${escapeHTML(comment.message)}</div>
             <div class="comment-actions">
                 <div class="comment-vote-container reddit-style">
-                    <button type="button" class="comment-vote-btn upvote ${hasUpvoted ? 'active' : ''}" data-action="upvote">⬆️</button>
+                    <button type="button" class="comment-vote-btn upvote ${hasUpvoted ? 'active' : ''}" data-action="upvote">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                    </button>
                     <span class="comment-vote-score">${initialScore}</span>
-                    <button type="button" class="comment-vote-btn downvote ${hasDownvoted ? 'active' : ''}" data-action="downvote">⬇️</button>
                 </div>
                 <button type="button" class="comment-reply-btn" data-id="${comment.id}" data-author="${comment.nickname}" data-parent="${comment.parentId || comment.id}">
                     Reply
@@ -317,13 +298,11 @@ async function initComments() {
         `;
 
         // Handle vote clicks
-        const voteBtns = card.querySelectorAll('.comment-vote-btn');
-        voteBtns.forEach(btn => {
-            btn.onclick = async () => {
-                const actionType = btn.getAttribute('data-action');
-                const otherActionType = actionType === 'upvote' ? 'downvote' : 'upvote';
+        const voteBtn = card.querySelector('.comment-vote-btn');
+        if (voteBtn) {
+            voteBtn.onclick = async () => {
+                const actionType = 'upvote';
                 const hasReacted = localStorage.getItem(`reacted_${comment.id}_${actionType}`) === 'true';
-                const hasOtherReacted = localStorage.getItem(`reacted_${comment.id}_${otherActionType}`) === 'true';
                 
                 const scoreSpan = card.querySelector('.comment-vote-score');
                 let currentScore = parseInt(scoreSpan.innerText);
@@ -331,27 +310,14 @@ async function initComments() {
                 let action = "react";
                 if (hasReacted) {
                     action = "unreact";
-                    currentScore = actionType === 'upvote' ? currentScore - 1 : currentScore + 1;
-                    btn.classList.remove('active');
+                    currentScore = Math.max(0, currentScore - 1);
+                    voteBtn.classList.remove('active');
                     localStorage.setItem(`reacted_${comment.id}_${actionType}`, 'false');
                 } else {
                     action = "react";
-                    currentScore = actionType === 'upvote' ? currentScore + 1 : currentScore - 1;
-                    btn.classList.add('active');
+                    currentScore += 1;
+                    voteBtn.classList.add('active');
                     localStorage.setItem(`reacted_${comment.id}_${actionType}`, 'true');
-                    
-                    if (hasOtherReacted) {
-                        currentScore = actionType === 'upvote' ? currentScore + 1 : currentScore - 1;
-                        const otherBtn = card.querySelector(`.comment-vote-btn.${otherActionType}`);
-                        if (otherBtn) otherBtn.classList.remove('active');
-                        localStorage.setItem(`reacted_${comment.id}_${otherActionType}`, 'false');
-                        
-                        fetch(`${WORKER_URL}/api/comments/react`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ post_id: postId, comment_id: comment.id, emoji: otherActionType, action: 'unreact' })
-                        }).catch(e => console.error(e));
-                    }
                 }
                 scoreSpan.innerText = currentScore;
 
@@ -365,7 +331,7 @@ async function initComments() {
                     console.error('Failed to toggle vote', err);
                 }
             };
-        });
+        }
 
         return card;
     };

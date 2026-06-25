@@ -780,11 +780,6 @@ html {
     background: rgba(255, 69, 0, 0.1);
 }
 
-.post-reaction-btn.active.downvote, .comment-vote-btn.active.downvote {
-    color: #7193ff;
-    background: rgba(113, 147, 255, 0.1);
-}
-
 .post-reaction-score, .comment-vote-score {
     font-size: 0.95rem;
     font-weight: 600;
