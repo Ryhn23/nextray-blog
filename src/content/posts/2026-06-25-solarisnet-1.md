@@ -1,6 +1,6 @@
 ---
 title: "Regarding SolarisNet"
-date: "2026-05-26"
+date: "2026-06-26"
 description: "project situation"
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: "SSD Rusak"
-date: "2026-05-26"
+date: "2026-07-12"
 description: "server lokal seharian keknya mati wkwk"
 ---
 
