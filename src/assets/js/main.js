@@ -350,6 +350,22 @@ async function initComments() {
             };
         }
 
+        // Handle reply clicks
+        const replyBtn = card.querySelector('.comment-reply-btn');
+        if (replyBtn) {
+            replyBtn.onclick = () => {
+                parentIdInput.value = replyBtn.getAttribute('data-parent');
+                replyTargetAuthor.innerText = replyBtn.getAttribute('data-author');
+                replyIndicator.style.display = 'flex';
+                
+                const form = document.getElementById('comment-form');
+                if (form) {
+                    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    document.getElementById('comment-message').focus();
+                }
+            };
+        }
+
         return card;
     };
 
